@@ -1,26 +1,43 @@
 # Patches for Qt must be at the very least submitted to Qt's Gerrit codereview
 # rather than their bug-report Jira. The latter is rarely reviewed by Qt.
-class QtAT5121 < Formula
+class Qt5111 < Formula
   desc "Cross-platform application and UI framework"
   homepage "https://www.qt.io/"
-  url "https://download.qt.io/official_releases/qt/5.12/5.12.1/single/qt-everywhere-src-5.12.1.tar.xz"
-  mirror "https://qt.mirror.constant.com/archive/qt/5.12/5.12.1/single/qt-everywhere-src-5.12.1.tar.xz"
-  mirror "https://ftp.osuosl.org/pub/blfs/conglomeration/qt5/qt-everywhere-src-5.12.1.tar.xz"
-  sha256 "caffbd625c7bc10ff8c5c7a27dbc7d84fa4de146975c0e1ffe904b514ccd6da4"
-
-  head "https://code.qt.io/qt/qt5.git", :branch => "dev", :shallow => false
+  url "https://download.qt.io/official_releases/qt/5.11/5.11.1/single/qt-everywhere-src-5.11.1.tar.xz"
+  mirror "https://qt.mirror.constant.com/archive/qt/5.11/5.11.1/single/qt-everywhere-src-5.11.1.tar.xz"
+  mirror "https://ftp.osuosl.org/pub/blfs/conglomeration/qt5/qt-everywhere-src-5.11.1.tar.xz"
+  sha256 "39602cb08f9c96867910c375d783eed00fc4a244bffaa93b801225d17950fb2b"
+  head "https://code.qt.io/qt/qt5.git", :branch => "5.11", :shallow => false
 
   bottle do
-    cellar :any
-    sha256 "d96ef428caa3b82d52039e9b7a0c768fbd70103f35b4b87989d01b3370b1e8c5" => :mojave
-    sha256 "0b3487813eac66f3e9637fdf1ec02a054e2be9bfbb03b467798c07186fa9a19c" => :high_sierra
-    sha256 "f4898e2f36c16ba2a0d02032b7df78107a01e24407aa61def278bc492cff0272" => :sierra
+    sha256 "7c82a27936aa9bab5d1c87c93d57b7589307e9dddf886d79fc7e96a704f6f047" => :mojave
+    sha256 "6483de8b8724673a06e03abfc667286c5c660c74b93458f2f9b0cee11da91782" => :high_sierra
+    sha256 "16d4d034e3fb5561369a0cb5e9f17f14c223e3be8452f29480b129f90480aadb" => :sierra
+    sha256 "1ca417e240550c5387e7d19a5b000c3bc32fc7141063f6b8ce42275b00d10d4d" => :el_capitan
   end
 
   keg_only "Qt 5 has CMake issues when linked"
 
+  option "with-examples", "Build examples"
+  option "without-proprietary-codecs", "Don't build with proprietary codecs (e.g. mp3)"
+
+  deprecated_option "with-mysql" => "with-mysql-client"
+
   depends_on "pkg-config" => :build
   depends_on :xcode => :build
+  depends_on "mysql-client" => :optional
+  depends_on "postgresql" => :optional
+
+  # Restore `.pc` files for framework-based build of Qt 5 on macOS, partially
+  # reverting <https://codereview.qt-project.org/#/c/140954/>
+  # Core formulae known to fail without this patch (as of 2016-10-15):
+  #   * gnuplot (with `--with-qt` option)
+  #   * mkvtoolnix (with `--with-qt` option, silent build failure)
+  #   * poppler (with `--with-qt` option)
+  patch do
+    url "https://raw.githubusercontent.com/Homebrew/formula-patches/e8fe6567/qt5/restore-pc-files.patch"
+    sha256 "48ff18be2f4050de7288bddbae7f47e949512ac4bcd126c2f504be2ac701158b"
+  end
 
   def install
     args = %W[
@@ -33,13 +50,30 @@ class QtAT5121 < Formula
       -qt-libjpeg
       -qt-freetype
       -qt-pcre
-      -nomake examples
       -nomake tests
       -no-rpath
       -pkg-config
       -dbus-runtime
-      -proprietary-codecs
     ]
+
+    args << "-nomake" << "examples" if build.without? "examples"
+
+    if build.with? "mysql-client"
+      args << "-plugin-sql-mysql"
+      (buildpath/"brew_shim/mysql_config").write <<~EOS
+        #!/bin/sh
+        if [ x"$1" = x"--libs" ]; then
+          mysql_config --libs | sed "s/-lssl -lcrypto//"
+        else
+          exec mysql_config "$@"
+        fi
+      EOS
+      chmod 0755, "brew_shim/mysql_config"
+      args << "-mysql_config" << buildpath/"brew_shim/mysql_config"
+    end
+
+    args << "-plugin-sql-psql" if build.with? "postgresql"
+    args << "-proprietary-codecs" if build.with? "proprietary-codecs"
 
     system "./configure", *args
     system "make"

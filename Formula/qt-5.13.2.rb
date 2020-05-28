@@ -41,6 +41,7 @@ class Qt5132 < Formula
       -pkg-config
       -dbus-runtime
       -proprietary-codecs
+      -skip qtwebengine
     ]
 
     system "./configure", *args

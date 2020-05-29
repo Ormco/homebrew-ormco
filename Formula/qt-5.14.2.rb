@@ -48,7 +48,6 @@ class Qt5142 < Formula
         -pkg-config
         -dbus-runtime
         -proprietary-codecs
-        -skip qtwebengine
       ]
 
       system "./configure", *args
@@ -100,6 +99,7 @@ class Qt5142 < Formula
       (testpath/"main.cpp").write <<~EOS
         #include <QCoreApplication>
         #include <QDebug>
+
         int main(int argc, char *argv[])
         {
           QCoreApplication a(argc, argv);
@@ -115,3 +115,27 @@ class Qt5142 < Formula
       system "./hello"
     end
   end
+
+  __END__
+--- a/qtwebengine/src/buildtools/config/mac_osx.pri
++++ b/qtwebengine/src/buildtools/config/mac_osx.pri
+@@ -9,6 +9,10 @@
+      isEmpty(QMAKE_MAC_SDK_VERSION): error("Could not resolve SDK version for \'$${QMAKE_MAC_SDK}\'")
+ }
+
++# chromium/build/mac/find_sdk.py expects the SDK version (mac_sdk_min) in Major.Minor format.
++# If Patch version is provided it fails with "Exception: No Major.Minor.Patch+ SDK found"
++QMAKE_MAC_SDK_VERSION_MAJOR_MINOR = $$section(QMAKE_MAC_SDK_VERSION, ".", 0, 1)
++
+ QMAKE_CLANG_DIR = "/usr"
+ QMAKE_CLANG_PATH = $$eval(QMAKE_MAC_SDK.macx-clang.$${QMAKE_MAC_SDK}.QMAKE_CXX)
+ !isEmpty(QMAKE_CLANG_PATH) {
+@@ -28,7 +32,7 @@
+     clang_base_path=\"$${QMAKE_CLANG_DIR}\" \
+     clang_use_chrome_plugins=false \
+     mac_deployment_target=\"$${QMAKE_MACOSX_DEPLOYMENT_TARGET}\" \
+-    mac_sdk_min=\"$${QMAKE_MAC_SDK_VERSION}\" \
++    mac_sdk_min=\"$${QMAKE_MAC_SDK_VERSION_MAJOR_MINOR}\" \
+     use_external_popup_menu=false
+
+ qtConfig(webengine-spellchecker) {

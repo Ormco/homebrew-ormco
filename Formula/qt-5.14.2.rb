@@ -8,20 +8,19 @@ class Qt5142 < Formula
   mirror "https://mirrors.ocf.berkeley.edu/qt/archive/qt/5.14/5.14.2/single/qt-everywhere-src-5.14.2.tar.xz"
   sha256 "c6fcd53c744df89e7d3223c02838a33309bd1c291fcb6f9341505fe99f7f19fa"
 
-  head "https://code.qt.io/qt/qt5.git", :branch => "dev", :shallow => false
+  head "https://code.qt.io/qt/qt5.git", branch: "dev", shallow: false
 
   bottle do
-    cellar :any
-    sha256 "235bbe918f05509380ba870b24a84e14cbac044b56ade7b824408ad11963de41" => :catalina
-    sha256 "356f2d8914429724dc0b98ab194b3c32417870008650342a21ddbb26c130743d" => :mojave
-    sha256 "78f577a236c2eee17e371ae5efe951b80e01f6e2a491b6922442b71e0a2cf3e6" => :high_sierra
+    sha256 cellar: :any, catalina:    "235bbe918f05509380ba870b24a84e14cbac044b56ade7b824408ad11963de41"
+    sha256 cellar: :any, mojave:      "356f2d8914429724dc0b98ab194b3c32417870008650342a21ddbb26c130743d"
+    sha256 cellar: :any, high_sierra: "78f577a236c2eee17e371ae5efe951b80e01f6e2a491b6922442b71e0a2cf3e6"
   end
 
   keg_only "Qt 5 has CMake issues when linked"
 
   depends_on "pkg-config" => :build
-  depends_on :xcode => :build
-  depends_on :macos => :sierra
+  depends_on xcode: :build
+  depends_on macos: :sierra
 
   uses_from_macos "bison"
   uses_from_macos "flex"
